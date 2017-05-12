@@ -52,7 +52,7 @@ import (
 	"unsafe"
 )
 
-type NDPIWrapper struct {
+type Wrapper struct {
 	cM (*C.struct_ndpi_detection_module_struct)
 	cS C.size_t
 }
@@ -71,7 +71,7 @@ func free_wrapper(freeable unsafe.Pointer) {
 
 }
 
-var NFQFilter NDPIWrapper
+var NFQFilter Wrapper
 
 var ErrInitFailed = errors.New("nDPI: init failed")
 
@@ -82,7 +82,8 @@ func Init() error {
 		fmt.Println("NDPI Error")
 		return ErrInitFailed
 	}
-	fmt.Println("NFQFilter is %s", NFQFilter)
+	fmt.Printf("NFQFilter is %s", NFQFilter)
+
 	return nil
 
 }

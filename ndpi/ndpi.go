@@ -16,7 +16,7 @@ extern void free_wrapper(void *freeable);
 
 
 
-static inline struct ndpi_detection_module_struct* ndpi_init()
+static  struct ndpi_detection_module_struct* ndpi_init()
 {
 
 	set_ndpi_malloc(malloc_wrapper), set_ndpi_free(free_wrapper);
@@ -48,13 +48,19 @@ import "C"
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"unsafe"
 )
+
+type NDPIWrapper struct {
+	cM (*C.struct_ndpi_detection_module_struct)
+	cS C.size_t
+}
 
 //export malloc_wrapper
 func malloc_wrapper(size C.size_t) unsafe.Pointer {
 
+	NFQFilter.cS = NFQFilter.cS + size
 	return unsafe.Pointer(C.malloc(size))
 }
 
@@ -65,18 +71,18 @@ func free_wrapper(freeable unsafe.Pointer) {
 
 }
 
-type NDPIWrapper struct {
-	cM (*C.struct_ndpi_detection_module_struct)
-}
+var NFQFilter NDPIWrapper
 
 var ErrInitFailed = errors.New("nDPI: init failed")
 
-func (n *NDPIWrapper) Init() error {
-	log.Println("Init nDPI")
-	n.cM = C.ndpi_init()
-	if n.cM == nil {
+func Init() error {
+	fmt.Println("Init nDPI")
+	NFQFilter.cM = C.ndpi_init()
+	if NFQFilter.cM == nil {
+		fmt.Println("NDPI Error")
 		return ErrInitFailed
 	}
+	fmt.Println("NFQFilter is %s", NFQFilter)
 	return nil
 
 }

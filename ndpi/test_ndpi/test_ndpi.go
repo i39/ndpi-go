@@ -1,7 +1,9 @@
 package main
 
-import "ndpi-go/ndpi"
-import "fmt"
+import (
+	"fmt"
+	"ndpi-go/ndpi"
+)
 
 func main() {
 	ndpi.Init()

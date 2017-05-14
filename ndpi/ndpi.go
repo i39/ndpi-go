@@ -53,8 +53,11 @@ import (
 )
 
 type wrapper struct {
-	cM (*C.struct_ndpi_detection_module_struct)
-	cS C.size_t
+	cM   (*C.struct_ndpi_detection_module_struct)
+	cS   C.size_t
+	src  unsafe.Pointer
+	dst  unsafe.Pointer
+	flow unsafe.Pointer
 }
 
 //export mallocWrapper
@@ -87,6 +90,13 @@ func Init() error {
 		return ErrInitFailed
 	}
 	fmt.Printf("NFQFilter mem size is %s", humanize.Bytes((uint64(NDPIFilter.cS))))
+
+	ndpiSizeIDStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_id_struct())
+	ndpiSizeFlowStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_flow_struct())
+
+	NDPIFilter.src = unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct))
+	NDPIFilter.dst = unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct))
+	NDPIFilter.flow = unsafe.Pointer(C.calloc(1, ndpiSizeFlowStruct))
 
 	return nil
 

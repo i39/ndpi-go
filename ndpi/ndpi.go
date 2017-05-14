@@ -11,15 +11,14 @@ package ndpi
 //#include <libndpi-1.8.0/libndpi/ndpi_api.h>
 #include <libndpi-1.8.0/libndpi/ndpi_main.h>
 
-extern void *malloc_wrapper(unsigned long size);
-extern void free_wrapper(void *freeable);
+extern void *mallocWrapper(unsigned long size);
+extern void freeWrapper(void *freeable);
 
 
 
-static  struct ndpi_detection_module_struct* ndpi_init()
-{
+ static struct ndpi_detection_module_struct* ndpi_init() {
 
-	set_ndpi_malloc(malloc_wrapper), set_ndpi_free(free_wrapper);
+	set_ndpi_malloc(mallocWrapper), set_ndpi_free(freeWrapper);
 	//set_ndpi_flow_malloc(NULL), set_ndpi_flow_free(NULL);
 
 	struct ndpi_detection_module_struct* my_ndpi_struct = ndpi_init_detection_module();
@@ -42,7 +41,6 @@ static  struct ndpi_detection_module_struct* ndpi_init()
 	return my_ndpi_struct;
 }
 
-
 */
 import "C"
 
@@ -50,39 +48,45 @@ import (
 	"errors"
 	"fmt"
 	"unsafe"
+
+	"github.com/dustin/go-humanize"
 )
 
-type Wrapper struct {
+type wrapper struct {
 	cM (*C.struct_ndpi_detection_module_struct)
 	cS C.size_t
 }
 
-//export malloc_wrapper
-func malloc_wrapper(size C.size_t) unsafe.Pointer {
+//export mallocWrapper
+func mallocWrapper(size C.size_t) unsafe.Pointer {
 
-	NFQFilter.cS = NFQFilter.cS + size
+	NDPIFilter.cS = NDPIFilter.cS + size
 	return unsafe.Pointer(C.malloc(size))
 }
 
-//export free_wrapper
-func free_wrapper(freeable unsafe.Pointer) {
+//export freeWrapper
+func freeWrapper(freeable unsafe.Pointer) {
 
 	C.free(freeable)
 
 }
 
-var NFQFilter Wrapper
+//NDPIFilter n
+var NDPIFilter wrapper
 
+//ErrInitFailed ...
 var ErrInitFailed = errors.New("nDPI: init failed")
 
+//Init initialize DPI
 func Init() error {
+
 	fmt.Println("Init nDPI")
-	NFQFilter.cM = C.ndpi_init()
-	if NFQFilter.cM == nil {
+	NDPIFilter.cM = C.ndpi_init()
+	if NDPIFilter.cM == nil {
 		fmt.Println("NDPI Error")
 		return ErrInitFailed
 	}
-	fmt.Printf("NFQFilter is %s", NFQFilter)
+	fmt.Printf("NFQFilter mem size is %s", humanize.Bytes((uint64(NDPIFilter.cS))))
 
 	return nil
 

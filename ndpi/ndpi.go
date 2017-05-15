@@ -8,7 +8,7 @@ package ndpi
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-//#include <libndpi-1.8.0/libndpi/ndpi_api.h>
+#include <libndpi-1.8.0/libndpi/ndpi_api.h>
 #include <libndpi-1.8.0/libndpi/ndpi_main.h>
 
 extern void *mallocWrapper(unsigned long size);
@@ -47,6 +47,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/dustin/go-humanize"
@@ -55,15 +56,16 @@ import (
 type wrapper struct {
 	cM   (*C.struct_ndpi_detection_module_struct)
 	cS   C.size_t
-	src  unsafe.Pointer
-	dst  unsafe.Pointer
-	flow unsafe.Pointer
+	src  (*C.struct_ndpi_id_struct)
+	dst  (*C.struct_ndpi_id_struct)
+	flow (*C.struct_ndpi_flow_struct)
 }
 
 //export mallocWrapper
 func mallocWrapper(size C.size_t) unsafe.Pointer {
 
 	NDPIFilter.cS = NDPIFilter.cS + size
+
 	return unsafe.Pointer(C.malloc(size))
 }
 
@@ -89,15 +91,27 @@ func Init() error {
 		fmt.Println("NDPI Error")
 		return ErrInitFailed
 	}
-	fmt.Printf("NFQFilter mem size is %s", humanize.Bytes((uint64(NDPIFilter.cS))))
+	fmt.Printf("NFQFilter mem size is %s \n", humanize.Bytes((uint64(NDPIFilter.cS))))
 
 	ndpiSizeIDStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_id_struct())
 	ndpiSizeFlowStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_flow_struct())
 
-	NDPIFilter.src = unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct))
-	NDPIFilter.dst = unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct))
-	NDPIFilter.flow = unsafe.Pointer(C.calloc(1, ndpiSizeFlowStruct))
+	NDPIFilter.src = (*C.struct_ndpi_id_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct)))
+	NDPIFilter.dst = (*C.struct_ndpi_id_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct)))
+	NDPIFilter.flow = (*C.struct_ndpi_flow_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeFlowStruct)))
 
 	return nil
 
+}
+
+//DetectionProcessPacket ...
+func DetectionProcessPacket(packet *[]byte, size int) {
+	//packetData := packet
+	packetDataP := unsafe.Pointer(packet)
+	var currentTickt C.u_int64_t
+	currentTickt = 0
+	var protocol C.struct_ndpi_proto
+	protocol = C.ndpi_detection_process_packet(NDPIFilter.cM, NDPIFilter.flow, (*C.uchar)(packetDataP), C.ushort(size), currentTickt, NDPIFilter.src, NDPIFilter.dst)
+	log.Printf("[DEBUG] protocol is: %d len is: %d packet is: %s", protocol.master_protocol, size, *packet)
+	//log.Printf("[DEBUG] HTTP is: %s", C.NDPI_PROTOCOL_HTTP)
 }

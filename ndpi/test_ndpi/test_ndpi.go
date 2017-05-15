@@ -34,26 +34,34 @@ func main() {
 	}
 	defer handle.Close()
 
+	ndpi.Init()
+
 	// Loop through packets in file
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-		log.Printf("[DEBUG] packet: %s", packet)
+		//log.Printf("[DEBUG] packet: %s", packet)
 		ipLayer := packet.Layer(layers.LayerTypeIPv4)
 		if ipLayer != nil {
-			log.Println("[DEBUG] IPv4 detected")
+			//log.Println("[DEBUG] IPv4 detected")
 		} else {
 			ipLayer = packet.Layer(layers.LayerTypeIPv6)
 			if ipLayer != nil {
-				log.Println("[DEBUG] IPv6 detected")
+				//log.Println("[DEBUG] IPv6 detected")
 			} else {
 				log.Printf("[ERROR] Unsupported IP protocol version for packet %s", packet)
 				continue
 			}
 		}
 
-	}
+		tcpLayer := packet.Layer(layers.LayerTypeTCP)
 
-	ndpi.Init()
+		if tcpLayer != nil {
+			//log.Printf("[DEBUG] Layer %s", tcpLayer.LayerPayload())
+			payload := tcpLayer.LayerPayload()
+			ndpi.DetectionProcessPacket(&payload, len(tcpLayer.LayerPayload()))
+		}
+
+	}
 
 	fmt.Println("-- ")
 }

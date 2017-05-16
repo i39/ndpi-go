@@ -9,7 +9,7 @@ package ndpi
 #include <stdint.h>
 #include <stdlib.h>
 #include <libndpi-1.8.0/libndpi/ndpi_api.h>
-#include <libndpi-1.8.0/libndpi/ndpi_main.h>
+
 
 extern void *mallocWrapper(unsigned long size);
 extern void freeWrapper(void *freeable);
@@ -41,6 +41,44 @@ extern void freeWrapper(void *freeable);
 	return my_ndpi_struct;
 }
 
+
+ static int parse_packet(struct ndpi_detection_module_struct* my_ndpi_struct, void* buffer, int ipsize) {
+
+
+		struct ndpi_id_struct *src = NULL;
+    struct ndpi_id_struct *dst = NULL;
+    struct ndpi_flow_struct *flow = NULL;
+		u_int32_t ndpi_size_flow_struct = 0;
+		u_int32_t ndpi_size_id_struct = 0;
+
+		printf("Enter to parse_packet\n");
+		ndpi_size_id_struct   = ndpi_detection_get_sizeof_ndpi_id_struct();
+		ndpi_size_flow_struct = ndpi_detection_get_sizeof_ndpi_flow_struct();
+
+    src = (struct ndpi_id_struct*)malloc(ndpi_size_id_struct);
+    memset(src, 0, ndpi_size_id_struct);
+
+    dst = (struct ndpi_id_struct*)malloc(ndpi_size_id_struct);
+    memset(dst, 0, ndpi_size_id_struct);
+
+    flow = (struct ndpi_flow_struct *)malloc(ndpi_size_flow_struct);
+    memset(flow, 0, ndpi_size_flow_struct);
+
+    uint32_t current_tickt = 0;
+
+    ndpi_protocol detected_protocol = ndpi_detection_process_packet(my_ndpi_struct, flow, buffer, ipsize, current_tickt, src, dst);
+
+    char* protocol_name = ndpi_get_proto_name(my_ndpi_struct, detected_protocol.master_protocol);
+    char* master_protocol_name = ndpi_get_proto_name(my_ndpi_struct, detected_protocol.master_protocol);
+
+    printf("Protocol: %s master protocol: %s\n", protocol_name, master_protocol_name);
+
+
+    ndpi_free_flow(flow);
+    free(dst);
+    free(src);
+		return detected_protocol.master_protocol;
+}
 */
 import "C"
 
@@ -96,22 +134,19 @@ func Init() error {
 	ndpiSizeIDStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_id_struct())
 	ndpiSizeFlowStruct := C.size_t(C.ndpi_detection_get_sizeof_ndpi_flow_struct())
 
-	NDPIFilter.src = (*C.struct_ndpi_id_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct)))
-	NDPIFilter.dst = (*C.struct_ndpi_id_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeIDStruct)))
-	NDPIFilter.flow = (*C.struct_ndpi_flow_struct)(unsafe.Pointer(C.calloc(1, ndpiSizeFlowStruct)))
+	NDPIFilter.src = (*C.struct_ndpi_id_struct)(C.calloc(1, ndpiSizeIDStruct))
+	NDPIFilter.dst = (*C.struct_ndpi_id_struct)(C.calloc(1, ndpiSizeIDStruct))
+	NDPIFilter.flow = (*C.struct_ndpi_flow_struct)(C.calloc(1, ndpiSizeFlowStruct))
 
 	return nil
 
 }
 
 //DetectionProcessPacket ...
-func DetectionProcessPacket(packet *[]byte, size int) {
-	//packetData := packet
-	packetDataP := unsafe.Pointer(packet)
-	var currentTickt C.u_int64_t
-	currentTickt = 0
-	var protocol C.struct_ndpi_proto
-	protocol = C.ndpi_detection_process_packet(NDPIFilter.cM, NDPIFilter.flow, (*C.uchar)(packetDataP), C.ushort(size), currentTickt, NDPIFilter.src, NDPIFilter.dst)
-	log.Printf("[DEBUG] protocol is: %d len is: %d packet is: %s", protocol.master_protocol, size, *packet)
+func DetectionProcessPacket(packet []byte, size int) {
+	packetData := packet
+	//packetDataP := unsafe.Pointer(&packetData)
+
+	log.Printf("[DEBUG] protocol is: %d len is: %d packet is: %s", C.parse_packet(NDPIFilter.cM, C.CBytes(packetData), C.int(size)), size, packet)
 	//log.Printf("[DEBUG] HTTP is: %s", C.NDPI_PROTOCOL_HTTP)
 }

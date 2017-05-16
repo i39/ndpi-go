@@ -57,8 +57,9 @@ func main() {
 
 		if tcpLayer != nil {
 			//log.Printf("[DEBUG] Layer %s", tcpLayer.LayerPayload())
+			//payload := tcpLayer.LayerContents()
 			payload := tcpLayer.LayerPayload()
-			ndpi.DetectionProcessPacket(&payload, len(tcpLayer.LayerPayload()))
+			ndpi.DetectionProcessPacket(payload, len(tcpLayer.LayerPayload()))
 		}
 
 	}
